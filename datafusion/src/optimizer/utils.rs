@@ -17,7 +17,10 @@
 
 //! Collection of utility functions that are leveraged by the query optimizer rules
 
-use std::{collections::HashSet, sync::Arc};
+use std::{
+    collections::{HashMap, HashSet},
+    sync::Arc,
+};
 
 use arrow::datatypes::Schema;
 
@@ -91,6 +94,113 @@ impl ExpressionVisitor for ColumnNameVisitor<'_> {
 /// referenced in the expression
 pub fn expr_to_columns(expr: &Expr, accum: &mut HashSet<Column>) -> Result<()> {
     expr.accept(ColumnNameVisitor { accum })?;
+    Ok(())
+}
+
+/// Go through an expression tree and generate identity.
+struct ExprIdentifierVisitor<'a> {
+    visit_stack: Vec<Item>,
+    expr_set: &'a mut ExprSet,
+}
+
+// Helper struct & func
+pub type ExprSet = HashMap<String, Expr>;
+
+enum Item {
+    EnterMark,
+    ExprItem(String),
+}
+
+impl<'a> ExprIdentifierVisitor<'a> {
+    fn desc_expr(expr: &Expr) -> String {
+        let mut desc = String::new();
+        match expr {
+            Expr::Column(column) => {
+                desc.push_str("Column-");
+                desc.push_str(&column.flat_name());
+            }
+            Expr::ScalarVariable(var_names) => {
+                // accum.insert(Column::from_name(var_names.join(".")));
+                desc.push_str("ScalarVariable-");
+                desc.push_str(&var_names.join("."));
+            }
+            Expr::Alias(_, alias) => {
+                desc.push_str("Alias-");
+                desc.push_str(alias);
+            }
+            Expr::Literal(value) => {
+                desc.push_str("Literal");
+                desc.push_str(&value.to_string());
+            }
+            Expr::BinaryExpr { op, .. } => {
+                desc.push_str("BinaryExpr-");
+                desc.push_str(&op.to_string());
+            }
+            Expr::Not(_) => {}
+            Expr::IsNotNull(_) => {}
+            Expr::IsNull(_) => {}
+            Expr::Negative(_) => {}
+            Expr::Between { .. } => {}
+            Expr::Case { .. } => {}
+            Expr::Cast { .. } => {}
+            Expr::TryCast { .. } => {}
+            Expr::Sort { .. } => {}
+            Expr::ScalarFunction { .. } => {}
+            Expr::ScalarUDF { .. } => {}
+            Expr::WindowFunction { .. } => {}
+            Expr::AggregateFunction { fun, distinct, .. } => {
+                desc.push_str("AggregateFunction-");
+                desc.push_str(&fun.to_string());
+                desc.push_str(&distinct.to_string());
+            }
+            Expr::AggregateUDF { .. } => {}
+            Expr::InList { .. } => {}
+            Expr::Wildcard => {}
+        }
+
+        desc
+    }
+
+    fn pop_enter_mark(&mut self) -> String {
+        let mut desc = String::new();
+
+        while let Some(item) = self.visit_stack.pop() {
+            match item {
+                Item::EnterMark => return desc,
+                Item::ExprItem(s) => {
+                    desc.push_str(&s);
+                }
+            }
+        }
+
+        desc
+    }
+}
+
+impl ExpressionVisitor for ExprIdentifierVisitor<'_> {
+    fn pre_visit(mut self, _expr: &Expr) -> Result<Recursion<Self>> {
+        self.visit_stack.push(Item::EnterMark);
+        Ok(Recursion::Continue(self))
+    }
+
+    fn post_visit(mut self, expr: &Expr) -> Result<Self> {
+        let sub_expr_desc = self.pop_enter_mark();
+        let mut desc = Self::desc_expr(expr);
+        desc.push_str(&sub_expr_desc);
+
+        self.visit_stack.push(Item::ExprItem(desc.clone()));
+        self.expr_set.entry(desc).or_insert_with(|| expr.clone());
+        Ok(self)
+    }
+}
+
+/// Go through an expression tree and generate identity.
+pub fn expr_to_identifier(expr: &Expr, expr_set: &mut ExprSet) -> Result<()> {
+    expr.accept(ExprIdentifierVisitor {
+        visit_stack: vec![],
+        expr_set,
+    })?;
+
     Ok(())
 }
 
