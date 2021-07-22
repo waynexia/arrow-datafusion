@@ -793,9 +793,11 @@ impl Expr {
     where
         R: ExprRewriter,
     {
-        if !rewriter.pre_visit(&self)? {
-            return Ok(self);
-        };
+        match rewriter.pre_visit(&self)? {
+            RewriteRecursion::Mutate => return rewriter.mutate(self),
+            RewriteRecursion::Stop => return Ok(self),
+            RewriteRecursion::Continue => {}
+        }
 
         // recurse into all sub expressions(and cover all expression types)
         let expr = match self {
@@ -971,15 +973,23 @@ pub trait ExpressionVisitor: Sized {
     }
 }
 
+/// Controls how the [ExprRewriter] recursion should proceed.
+pub enum RewriteRecursion {
+    Continue,
+    /// Call [mutate()] immediately and return.h
+    Mutate,
+    Stop,
+}
+
 /// Trait for potentially recursively rewriting an [`Expr`] expression
 /// tree. When passed to `Expr::rewrite`, `ExpressionVisitor::mutate` is
 /// invoked recursively on all nodes of an expression tree. See the
 /// comments on `Expr::rewrite` for details on its use
 pub trait ExprRewriter: Sized {
     /// Invoked before any children of `expr` are rewritten /
-    /// visited. Default implementation returns `Ok(true)`
-    fn pre_visit(&mut self, _expr: &Expr) -> Result<bool> {
-        Ok(true)
+    /// visited. Default implementation returns `Ok(RewriteRecursion::Continue)`
+    fn pre_visit(&mut self, _expr: &Expr) -> Result<RewriteRecursion> {
+        Ok(RewriteRecursion::Continue)
     }
 
     /// Invoked after all children of `expr` have been mutated and
@@ -1826,9 +1836,9 @@ mod tests {
             Ok(expr)
         }
 
-        fn pre_visit(&mut self, expr: &Expr) -> Result<bool> {
+        fn pre_visit(&mut self, expr: &Expr) -> Result<RewriteRecursion> {
             self.v.push(format!("Previsited {:?}", expr));
-            Ok(true)
+            Ok(RewriteRecursion::Continue)
         }
     }
 
