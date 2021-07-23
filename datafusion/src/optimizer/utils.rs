@@ -25,17 +25,15 @@ use std::{
 use arrow::datatypes::Schema;
 
 use super::optimizer::OptimizerRule;
+use crate::error::{DataFusionError, Result};
 use crate::execution::context::ExecutionProps;
 use crate::logical_plan::{
-    build_join_schema, Column, DFSchemaRef, Expr, LogicalPlan, LogicalPlanBuilder,
-    Operator, Partitioning, PlanType, Recursion, StringifiedPlan, ToDFSchema,
+    build_join_schema, Column, DFSchemaRef, Expr, ExprRewriter, ExpressionVisitor,
+    LogicalPlan, LogicalPlanBuilder, Operator, Partitioning, PlanType, Recursion,
+    RewriteRecursion, StringifiedPlan, ToDFSchema,
 };
 use crate::prelude::lit;
 use crate::scalar::ScalarValue;
-use crate::{
-    error::{DataFusionError, Result},
-    logical_plan::ExpressionVisitor,
-};
 
 const CASE_EXPR_MARKER: &str = "__DATAFUSION_CASE_EXPR__";
 const CASE_ELSE_MARKER: &str = "__DATAFUSION_CASE_ELSE__";
@@ -101,10 +99,19 @@ pub fn expr_to_columns(expr: &Expr, accum: &mut HashSet<Column>) -> Result<()> {
 struct ExprIdentifierVisitor<'a> {
     visit_stack: Vec<Item>,
     expr_set: &'a mut ExprSet,
+    addr_map: &'a mut ExprAddrToId,
 }
 
 // Helper struct & func
-pub type ExprSet = HashMap<String, Expr>;
+
+/// A map from expression's identifier to tuple including
+/// - the expression itself (cloned)
+/// - a hash set contains all addresses with the same identifier.
+/// - counter
+/// - A alternative plan.
+pub type ExprSet = HashMap<String, (Expr, HashSet<*const Expr>, usize, Option<()>)>;
+
+pub type ExprAddrToId = HashMap<*const Expr, String>;
 
 enum Item {
     EnterMark,
@@ -189,19 +196,65 @@ impl ExpressionVisitor for ExprIdentifierVisitor<'_> {
         desc.push_str(&sub_expr_desc);
 
         self.visit_stack.push(Item::ExprItem(desc.clone()));
-        self.expr_set.entry(desc).or_insert_with(|| expr.clone());
+        self.expr_set
+            .entry(desc.clone())
+            .or_insert_with(|| (expr.clone(), HashSet::new(), 0, None))
+            .2 += 1;
+        self.addr_map.insert(expr as *const Expr, desc);
         Ok(self)
     }
 }
 
 /// Go through an expression tree and generate identity.
-pub fn expr_to_identifier(expr: &Expr, expr_set: &mut ExprSet) -> Result<()> {
+pub fn expr_to_identifier(
+    expr: &Expr,
+    expr_set: &mut ExprSet,
+    addr_map: &mut ExprAddrToId,
+) -> Result<()> {
     expr.accept(ExprIdentifierVisitor {
         visit_stack: vec![],
         expr_set,
+        addr_map,
     })?;
 
     Ok(())
+}
+
+/// Common Sub-expression Eliminate Visitor
+struct CommonSubexprRewriter<'a> {
+    expr_set: &'a mut ExprSet,
+    addr_map: &'a ExprAddrToId,
+}
+
+impl ExprRewriter for CommonSubexprRewriter<'_> {
+    fn pre_visit(&mut self, expr: &Expr) -> Result<RewriteRecursion> {
+        let expr_id = self.addr_map.get(&(expr as *const Expr)).unwrap();
+        let (stored_expr, somewhat_set, counter, another_thing) =
+            self.expr_set.get(expr_id).unwrap();
+
+        if *counter > 1 {
+            Ok(RewriteRecursion::Mutate)
+        } else {
+            Ok(RewriteRecursion::Continue)
+        }
+    }
+
+    fn mutate(&mut self, expr: Expr) -> Result<Expr> {
+        let expr_id = self.addr_map.get(&(&expr as *const Expr)).unwrap();
+        let (stored_expr, somewhat_set, counter, another_thing) =
+            self.expr_set.get(expr_id).unwrap();
+        if *counter > 1 {
+            // expr
+        } else {
+            return Ok(expr);
+        }
+
+        todo!()
+    }
+}
+
+pub fn eliminate_common_subexpr(expr: &Expr, expr_set: &mut ExprSet) -> Result<()> {
+    todo!()
 }
 
 /// Create a `LogicalPlan::Explain` node by running `optimizer` on the
@@ -279,6 +332,11 @@ pub fn from_plan(
         LogicalPlan::Projection { schema, .. } => Ok(LogicalPlan::Projection {
             expr: expr.to_vec(),
             input: Arc::new(inputs[0].clone()),
+            schema: schema.clone(),
+        }),
+        LogicalPlan::Shared { schema, .. } => Ok(LogicalPlan::Shared {
+            inputs: Arc::new(inputs[0].clone()),
+            expr: expr.to_vec(),
             schema: schema.clone(),
         }),
         LogicalPlan::Filter { .. } => Ok(LogicalPlan::Filter {

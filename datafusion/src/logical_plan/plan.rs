@@ -181,6 +181,13 @@ pub enum LogicalPlan {
         /// The schema description of the output
         schema: DFSchemaRef,
     },
+    Shared {
+        // todo: one or many input plan?
+        inputs: Arc<LogicalPlan>,
+        // todo: vec?
+        expr: Vec<Expr>,
+        schema: DFSchemaRef,
+    },
     /// Produces the first `n` tuples from its input and discards the rest.
     Limit {
         /// The limit
@@ -241,6 +248,7 @@ impl LogicalPlan {
             LogicalPlan::Explain { schema, .. } => schema,
             LogicalPlan::Extension { node } => node.schema(),
             LogicalPlan::Union { schema, .. } => schema,
+            LogicalPlan::Shared { schema, .. } => schema,
         }
     }
 
@@ -273,7 +281,7 @@ impl LogicalPlan {
                 schemas.insert(0, schema);
                 schemas
             }
-            LogicalPlan::Union { schema, .. } => {
+            LogicalPlan::Union { schema, .. } | LogicalPlan::Shared { schema, .. } => {
                 vec![schema]
             }
             LogicalPlan::Extension { node } => vec![node.schema()],
@@ -302,6 +310,7 @@ impl LogicalPlan {
         match self {
             LogicalPlan::Projection { expr, .. } => expr.clone(),
             LogicalPlan::Filter { predicate, .. } => vec![predicate.clone()],
+            LogicalPlan::Shared { expr, .. } => expr.clone(),
             LogicalPlan::Repartition {
                 partitioning_scheme,
                 ..
@@ -350,6 +359,7 @@ impl LogicalPlan {
             LogicalPlan::Extension { node } => node.inputs(),
             LogicalPlan::Union { inputs, .. } => inputs.iter().collect(),
             LogicalPlan::Explain { plan, .. } => vec![plan],
+            LogicalPlan::Shared { inputs, .. } => vec![inputs],
             // plans without inputs
             LogicalPlan::TableScan { .. }
             | LogicalPlan::EmptyRelation { .. }
@@ -477,6 +487,7 @@ impl LogicalPlan {
             | LogicalPlan::CrossJoin { left, right, .. } => {
                 left.accept(visitor)? && right.accept(visitor)?
             }
+            LogicalPlan::Shared { inputs, .. } => inputs.accept(visitor)?,
             LogicalPlan::Union { inputs, .. } => {
                 for input in inputs {
                     if !input.accept(visitor)? {
@@ -792,6 +803,10 @@ impl LogicalPlan {
                     LogicalPlan::Explain { .. } => write!(f, "Explain"),
                     LogicalPlan::Union { .. } => write!(f, "Union"),
                     LogicalPlan::Extension { ref node } => node.fmt_for_explain(f),
+                    LogicalPlan::Shared { ref expr, .. } => {
+                        // todo: Expr
+                        write!(f, "Shared: {:?}", expr)
+                    }
                 }
             }
         }

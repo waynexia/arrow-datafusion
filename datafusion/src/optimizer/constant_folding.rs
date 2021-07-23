@@ -82,6 +82,7 @@ impl OptimizerRule for ConstantFolding {
             | LogicalPlan::Explain { .. }
             | LogicalPlan::Limit { .. }
             | LogicalPlan::Union { .. }
+            | LogicalPlan::Shared { .. }
             | LogicalPlan::Join { .. }
             | LogicalPlan::CrossJoin { .. } => {
                 // apply the optimization to all inputs of the plan

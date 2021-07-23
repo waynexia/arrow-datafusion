@@ -815,6 +815,9 @@ impl DefaultPhysicalPlanner {
                     Ok(plan)
                 }
             }
+            LogicalPlan::Shared { .. } => {
+                todo!()
+            }
         }
     }
 

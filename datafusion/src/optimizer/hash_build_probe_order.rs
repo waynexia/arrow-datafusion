@@ -92,6 +92,7 @@ fn get_num_rows(logical_plan: &LogicalPlan) -> Option<usize> {
         LogicalPlan::Union { inputs, .. } => {
             inputs.iter().map(|plan| get_num_rows(plan)).sum()
         }
+        LogicalPlan::Shared { inputs, .. } => get_num_rows(inputs),
     }
 }
 
@@ -202,7 +203,8 @@ impl OptimizerRule for HashBuildProbeOrder {
             | LogicalPlan::CreateExternalTable { .. }
             | LogicalPlan::Explain { .. }
             | LogicalPlan::Union { .. }
-            | LogicalPlan::Extension { .. } => {
+            | LogicalPlan::Extension { .. }
+            | LogicalPlan::Shared { .. } => {
                 let expr = plan.expressions();
 
                 // apply the optimization to all inputs of the plan

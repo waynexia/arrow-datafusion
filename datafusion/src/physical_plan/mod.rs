@@ -627,6 +627,7 @@ pub mod projection;
 #[cfg(feature = "regex_expressions")]
 pub mod regex_expressions;
 pub mod repartition;
+pub mod shared;
 pub mod sort;
 pub mod sort_preserving_merge;
 pub mod source;

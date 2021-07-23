@@ -21,7 +21,7 @@ use crate::error::Result;
 use crate::execution::context::ExecutionProps;
 use crate::logical_plan::LogicalPlan;
 use crate::optimizer::optimizer::OptimizerRule;
-use crate::optimizer::utils::{self, ExprSet};
+use crate::optimizer::utils::{self, ExprAddrToId, ExprSet};
 
 pub struct CommonSubexprEliminate {}
 
@@ -39,7 +39,11 @@ impl OptimizerRule for CommonSubexprEliminate {
     }
 }
 
-fn gather_identifier(plan: &LogicalPlan, expr_set: &mut ExprSet) -> Result<()> {
+fn gather_identifier(
+    plan: &LogicalPlan,
+    expr_set: &mut ExprSet,
+    addr_map: &mut ExprAddrToId,
+) -> Result<()> {
     match plan {
         LogicalPlan::Projection {
             expr,
@@ -48,13 +52,13 @@ fn gather_identifier(plan: &LogicalPlan, expr_set: &mut ExprSet) -> Result<()> {
         } => {
             for e in expr {
                 // let mut desc = String::new();
-                utils::expr_to_identifier(e, expr_set)?;
+                utils::expr_to_identifier(e, expr_set, addr_map)?;
                 // println!("{:?}", desc);
             }
         }
         LogicalPlan::Filter { predicate, input } => {
             // let mut desc = String::new();
-            utils::expr_to_identifier(predicate, expr_set)?;
+            utils::expr_to_identifier(predicate, expr_set, addr_map)?;
             // println!("{:?}", desc);
         }
         LogicalPlan::Window {
@@ -64,7 +68,7 @@ fn gather_identifier(plan: &LogicalPlan, expr_set: &mut ExprSet) -> Result<()> {
         } => {
             for e in window_expr {
                 // let mut desc = String::new();
-                utils::expr_to_identifier(e, expr_set)?;
+                utils::expr_to_identifier(e, expr_set, addr_map)?;
                 // println!("{:?}", desc);
             }
         }
@@ -76,13 +80,13 @@ fn gather_identifier(plan: &LogicalPlan, expr_set: &mut ExprSet) -> Result<()> {
         } => {
             for e in group_expr {
                 // let mut desc = String::new();
-                utils::expr_to_identifier(e, expr_set)?;
+                utils::expr_to_identifier(e, expr_set, addr_map)?;
                 // println!("{:?}", desc);
             }
 
             for e in aggr_expr {
                 // let mut desc = String::new();
-                utils::expr_to_identifier(e, expr_set)?;
+                utils::expr_to_identifier(e, expr_set, addr_map)?;
                 // println!("{:?}", desc);
             }
         }
@@ -96,17 +100,26 @@ fn gather_identifier(plan: &LogicalPlan, expr_set: &mut ExprSet) -> Result<()> {
         | LogicalPlan::Limit { .. }
         | LogicalPlan::CreateExternalTable { .. }
         | LogicalPlan::Explain { .. }
-        | LogicalPlan::Extension { .. } => {
-            // todo!()
-        }
+        | LogicalPlan::Extension { .. }
+        | LogicalPlan::Shared { .. } => {}
     }
 
     let inputs = plan.inputs();
     for input in inputs {
-        gather_identifier(input, expr_set)?;
+        gather_identifier(input, expr_set, addr_map)?;
     }
 
     Ok(())
+}
+
+fn generate_shared_plan(expr_set: &mut ExprSet) {
+    for (expr, _, count, plan) in expr_set.values_mut() {
+        if *count <= 1 {
+            continue;
+        }
+
+        let shared_plan = LogicalPlan::Shared{ inputs: (), expr: (), schema: () }
+    }
 }
 
 // csp -> common sub-expression plan
@@ -121,6 +134,7 @@ mod test {
     use crate::test::*;
 
     #[test]
+    #[ignore]
     fn dev_driver_tpch_q1_simplified() -> Result<()> {
         // SQL:
         //  select
@@ -153,7 +167,8 @@ mod test {
             .build()?;
 
         let mut expr_set = ExprSet::new();
-        gather_identifier(&plan, &mut expr_set)?;
+        let mut addr_map = ExprAddrToId::new();
+        // gather_identifier(&plan, &mut expr_set)?;
         println!("{:#?}", expr_set);
 
         Ok(())
