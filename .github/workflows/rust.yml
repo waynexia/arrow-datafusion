@@ -41,7 +41,7 @@ jobs:
           # these represent dependencies downloaded by cargo
           # and thus do not depend on the OS, arch nor rust version.
           path: /github/home/.cargo
-          key: cargo-cache-
+          key: cargo-cache-${{ runner.os }}-${{ hashFiles('Cargo.lock') }}
       - name: Setup Rust toolchain
         uses: ./.github/actions/setup-builder
         with:
@@ -89,7 +89,7 @@ jobs:
         with:
           path: /github/home/.cargo
           # this key equals the ones on `linux-build-lib` for re-use
-          key: cargo-cache-
+          key: cargo-cache-${{ runner.os }}-${{ hashFiles('Cargo.lock') }}
       - name: Setup Rust toolchain
         uses: ./.github/actions/setup-builder
         with:
@@ -247,7 +247,7 @@ jobs:
         with:
           path: /github/home/.cargo
           # this key equals the ones on `linux-build-lib` for re-use
-          key: cargo-cache-
+          key: cargo-cache-${{ runner.os }}-${{ hashFiles('Cargo.lock') }}
       - uses: actions/setup-python@v4
         with:
           python-version: "3.8"
@@ -306,7 +306,7 @@ jobs:
         with:
           path: /home/runner/.cargo
           # this key is not equal because the user is different than on a container (runner vs github)
-          key: cargo-coverage-cache3-
+          key: cargo-coverage-cache3-${{ runner.os }}-${{ hashFiles('Cargo.lock') }}
       - name: Run coverage
         run: |
           export PATH=$PATH:$HOME/d/protoc/bin
@@ -337,7 +337,7 @@ jobs:
         with:
           path: /github/home/.cargo
           # this key equals the ones on `linux-build-lib` for re-use
-          key: cargo-cache-
+          key: cargo-cache-${{ runner.os }}-${{ hashFiles('Cargo.lock') }}
       - name: Setup Rust toolchain
         uses: ./.github/actions/setup-builder
         with:
@@ -398,7 +398,7 @@ jobs:
         with:
           path: /github/home/.cargo
           # this key equals the ones on `linux-build-lib` for re-use
-          key: cargo-cache-
+          key: cargo-cache-${{ runner.os }}-${{ hashFiles('Cargo.lock') }}
       - name: Setup Rust toolchain
         uses: ./.github/actions/setup-builder
         with:
@@ -428,7 +428,7 @@ jobs:
         with:
           path: /github/home/.cargo
           # this key equals the ones on `linux-build-lib` for re-use
-          key: cargo-cache-
+          key: cargo-cache-${{ runner.os }}-${{ hashFiles('Cargo.lock') }}
       - name: Setup Rust toolchain
         uses: ./.github/actions/setup-builder
         with:
