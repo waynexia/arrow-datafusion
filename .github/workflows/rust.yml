@@ -44,7 +44,7 @@ jobs:
             ~/.cargo/registry
             ~/.cargo/git
             target
-          key: cargo-cache-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}
+          key: cargo-check-cache-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}
       - name: Setup Rust toolchain
         uses: ./.github/actions/setup-builder
         with:
@@ -94,8 +94,7 @@ jobs:
             ~/.cargo/registry
             ~/.cargo/git
             target
-          # this key equals the ones on `linux-build-lib` for re-use
-          key: cargo-cache-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}
+          key: cargo-test-cache-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}
       - name: Setup Rust toolchain
         uses: ./.github/actions/setup-builder
         with:
@@ -185,8 +184,14 @@ jobs:
           unzip $PROTO_ZIP
           export PATH=$PATH:$HOME/d/protoc/bin
           protoc.exe --version
-      # TODO: this won't cache anything, which is expensive. Setup this action
-      # with a OS-dependent path.
+      - name: Cache Cargo
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: cargo-test-cache-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}
       - name: Setup Rust toolchain
         run: |
           rustup toolchain install stable
@@ -219,8 +224,14 @@ jobs:
           echo "$HOME/d/protoc/bin" >> $GITHUB_PATH
           export PATH=$PATH:$HOME/d/protoc/bin
           protoc --version
-      # TODO: this won't cache anything, which is expensive. Setup this action
-      # with a OS-dependent path.
+      - name: Cache Cargo
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: cargo-test-cache-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}
       - name: Setup Rust toolchain
         run: |
           rustup toolchain install stable
@@ -256,7 +267,7 @@ jobs:
             ~/.cargo/git
             target
           # this key equals the ones on `linux-build-lib` for re-use
-          key: cargo-cache-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}
+          key: cargo-pyarrow-cache-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}
       - uses: actions/setup-python@v4
         with:
           python-version: "3.8"
@@ -352,7 +363,7 @@ jobs:
             ~/.cargo/git
             target
           # this key equals the ones on `linux-build-lib` for re-use
-          key: cargo-cache-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}
+          key: cargo-clippy-cache-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}
       - name: Setup Rust toolchain
         uses: ./.github/actions/setup-builder
         with:
@@ -416,7 +427,7 @@ jobs:
             ~/.cargo/git
             target
           # this key equals the ones on `linux-build-lib` for re-use
-          key: cargo-cache-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}
+          key: cargo-hash-collisions-cache-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}
       - name: Setup Rust toolchain
         uses: ./.github/actions/setup-builder
         with:
@@ -449,7 +460,7 @@ jobs:
             ~/.cargo/git
             target
           # this key equals the ones on `linux-build-lib` for re-use
-          key: cargo-cache-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}
+          key: cargo-format-cache-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}
       - name: Setup Rust toolchain
         uses: ./.github/actions/setup-builder
         with:
