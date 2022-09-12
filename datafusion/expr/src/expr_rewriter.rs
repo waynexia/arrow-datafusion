@@ -128,6 +128,39 @@ impl ExprRewritable for Expr {
                 op,
                 right: rewrite_boxed(right, rewriter)?,
             },
+            Expr::Like {
+                negated,
+                expr,
+                pattern,
+                escape_char,
+            } => Expr::Like {
+                negated,
+                expr: rewrite_boxed(expr, rewriter)?,
+                pattern: rewrite_boxed(pattern, rewriter)?,
+                escape_char,
+            },
+            Expr::ILike {
+                negated,
+                expr,
+                pattern,
+                escape_char,
+            } => Expr::ILike {
+                negated,
+                expr: rewrite_boxed(expr, rewriter)?,
+                pattern: rewrite_boxed(pattern, rewriter)?,
+                escape_char,
+            },
+            Expr::SimilarTo {
+                negated,
+                expr,
+                pattern,
+                escape_char,
+            } => Expr::SimilarTo {
+                negated,
+                expr: rewrite_boxed(expr, rewriter)?,
+                pattern: rewrite_boxed(pattern, rewriter)?,
+                escape_char,
+            },
             Expr::Not(expr) => Expr::Not(rewrite_boxed(expr, rewriter)?),
             Expr::IsNotNull(expr) => Expr::IsNotNull(rewrite_boxed(expr, rewriter)?),
             Expr::IsNull(expr) => Expr::IsNull(rewrite_boxed(expr, rewriter)?),
@@ -353,7 +386,7 @@ fn rewrite_sort_col_by_aggs(expr: Expr, plan: &LogicalPlan) -> Result<Expr> {
                         // The expr is not based on Aggregate plan output. Skip it.
                         return Ok(expr);
                     }
-                    let normalized_expr = normalized_expr.unwrap();
+                    let normalized_expr = normalized_expr?;
                     if let Some(found_agg) = self
                         .aggr_expr
                         .iter()

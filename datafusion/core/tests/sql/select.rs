@@ -478,14 +478,14 @@ async fn use_between_expression_in_select_query() -> Result<()> {
     let actual = execute_to_batches(&ctx, sql).await;
     // Expect field name to be correctly converted for expr, low and high.
     let expected = vec![
-        "+--------------------------------------------------------------------+",
-        "| abs(test.c1) BETWEEN Int64(0) AND log(test.c1 Multiply Int64(100)) |",
-        "+--------------------------------------------------------------------+",
-        "| true                                                               |",
-        "| true                                                               |",
-        "| false                                                              |",
-        "| false                                                              |",
-        "+--------------------------------------------------------------------+",
+        "+-------------------------------------------------------------+",
+        "| abs(test.c1) BETWEEN Int64(0) AND log(test.c1 * Int64(100)) |",
+        "+-------------------------------------------------------------+",
+        "| true                                                        |",
+        "| true                                                        |",
+        "| false                                                       |",
+        "| false                                                       |",
+        "+-------------------------------------------------------------+",
     ];
     assert_batches_eq!(expected, &actual);
 
@@ -495,10 +495,10 @@ async fn use_between_expression_in_select_query() -> Result<()> {
         .unwrap()
         .to_string();
 
-    // Only test that the projection exprs arecorrect, rather than entire output
+    // Only test that the projection exprs are correct, rather than entire output
     let needle = "ProjectionExec: expr=[c1@0 >= 2 AND c1@0 <= 3 as test.c1 BETWEEN Int64(2) AND Int64(3)]";
     assert_contains!(&formatted, needle);
-    let needle = "Projection: #test.c1 BETWEEN Int64(2) AND Int64(3)";
+    let needle = "Projection: #test.c1 >= Int64(2) AND #test.c1 <= Int64(3)";
     assert_contains!(&formatted, needle);
 
     Ok(())
@@ -512,7 +512,7 @@ async fn query_get_indexed_field() -> Result<()> {
         DataType::List(Box::new(Field::new("item", DataType::Int64, true))),
         false,
     )]));
-    let builder = PrimitiveBuilder::<Int64Type>::new(3);
+    let builder = PrimitiveBuilder::<Int64Type>::with_capacity(3);
     let mut lb = ListBuilder::new(builder);
     for int_vec in vec![vec![0, 1, 2], vec![4, 5, 6], vec![7, 8, 9]] {
         let builder = lb.values();
@@ -556,7 +556,7 @@ async fn query_nested_get_indexed_field() -> Result<()> {
         false,
     )]));
 
-    let builder = PrimitiveBuilder::<Int64Type>::new(3);
+    let builder = PrimitiveBuilder::<Int64Type>::with_capacity(3);
     let nested_lb = ListBuilder::new(builder);
     let mut lb = ListBuilder::new(nested_lb);
     for int_vec_vec in vec![
@@ -622,7 +622,7 @@ async fn query_nested_get_indexed_field_on_struct() -> Result<()> {
         false,
     )]));
 
-    let builder = PrimitiveBuilder::<Int64Type>::new(3);
+    let builder = PrimitiveBuilder::<Int64Type>::with_capacity(3);
     let nested_lb = ListBuilder::new(builder);
     let mut sb = StructBuilder::new(struct_fields, vec![Box::new(nested_lb)]);
     for int_vec in vec![vec![0, 1, 2, 3], vec![4, 5, 6, 7], vec![8, 9, 10, 11]] {
@@ -1204,11 +1204,11 @@ async fn unprojected_filter() {
     let results = df.collect().await.unwrap();
 
     let expected = vec![
-        "+--------------------------+",
-        "| ?table?.i Plus ?table?.i |",
-        "+--------------------------+",
-        "| 6                        |",
-        "+--------------------------+",
+        "+-----------------------+",
+        "| ?table?.i + ?table?.i |",
+        "+-----------------------+",
+        "| 6                     |",
+        "+-----------------------+",
     ];
     assert_batches_sorted_eq!(expected, &results);
 }

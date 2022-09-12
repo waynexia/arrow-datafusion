@@ -57,6 +57,7 @@ pub fn binary_operator_data_type(
         // bitwise operations return the common coerced type
         Operator::BitwiseAnd
         | Operator::BitwiseOr
+        | Operator::BitwiseXor
         | Operator::BitwiseShiftLeft
         | Operator::BitwiseShiftRight => Ok(result_type),
         // math operations return the same value as the common coerced type
@@ -81,6 +82,7 @@ pub fn coerce_types(
     let result = match op {
         Operator::BitwiseAnd
         | Operator::BitwiseOr
+        | Operator::BitwiseXor
         | Operator::BitwiseShiftRight
         | Operator::BitwiseShiftLeft => bitwise_coercion(lhs_type, rhs_type),
         Operator::And | Operator::Or => match (lhs_type, rhs_type) {
@@ -336,7 +338,7 @@ fn mathematics_numerical_coercion(
     }
 }
 
-fn create_decimal_type(precision: usize, scale: usize) -> DataType {
+fn create_decimal_type(precision: u8, scale: u8) -> DataType {
     DataType::Decimal128(
         DECIMAL128_MAX_PRECISION.min(precision),
         DECIMAL128_MAX_SCALE.min(scale),
@@ -382,10 +384,10 @@ fn coercion_decimal_mathematics_type(
                     let result_precision = result_scale + (*p1 - *s1).min(*p2 - *s2);
                     Some(create_decimal_type(result_precision, result_scale))
                 }
-                _ => unreachable!(),
+                _ => None,
             }
         }
-        _ => unreachable!(),
+        _ => None,
     }
 }
 
