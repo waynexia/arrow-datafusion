@@ -556,19 +556,20 @@ async fn spill_partial_sorted_stream(
     path: &Path,
     schema: SchemaRef,
 ) -> Result<()> {
-    let (sender, receiver) = tokio::sync::mpsc::channel(2);
-    let path: PathBuf = path.into();
-    let handle = task::spawn_blocking(move || write_sorted(receiver, path, schema));
-    while let Some(item) = in_mem_stream.next().await {
-        sender.send(item).await.ok();
-    }
-    drop(sender);
-    match handle.await {
-        Ok(r) => r,
-        Err(e) => Err(DataFusionError::Execution(format!(
-            "Error occurred while spilling {e}"
-        ))),
-    }
+    // let (sender, receiver) = tokio::sync::mpsc::channel(2);
+    // let path: PathBuf = path.into();
+    // let handle = task::spawn_blocking(move || write_sorted(receiver, path, schema));
+    // while let Some(item) = in_mem_stream.next().await {
+    //     sender.send(item).await.ok();
+    // }
+    // drop(sender);
+    // match handle.await {
+    //     Ok(r) => r,
+    //     Err(e) => Err(DataFusionError::Execution(format!(
+    //         "Error occurred while spilling {e}"
+    //     ))),
+    // }
+    todo!()
 }
 
 fn read_spill_as_stream(
@@ -579,16 +580,17 @@ fn read_spill_as_stream(
         Sender<ArrowResult<RecordBatch>>,
         Receiver<ArrowResult<RecordBatch>>,
     ) = tokio::sync::mpsc::channel(2);
-    let join_handle = task::spawn_blocking(move || {
-        if let Err(e) = read_spill(sender, path.path()) {
-            error!("Failure while reading spill file: {:?}. Error: {}", path, e);
-        }
-    });
-    Ok(RecordBatchReceiverStream::create(
-        &schema,
-        receiver,
-        join_handle,
-    ))
+    // let join_handle = task::spawn_blocking(move || {
+    //     if let Err(e) = read_spill(sender, path.path()) {
+    //         error!("Failure while reading spill file: {:?}. Error: {}", path, e);
+    //     }
+    // });
+    // Ok(RecordBatchReceiverStream::create(
+    //     &schema,
+    //     receiver,
+    //     join_handle,
+    // ))
+    todo!()
 }
 
 fn write_sorted(

@@ -21,7 +21,7 @@
 
 use dashmap::DashMap;
 use datafusion_common::{DataFusionError, Result};
-use object_store::local::LocalFileSystem;
+// use object_store::local::LocalFileSystem;
 use object_store::ObjectStore;
 use std::sync::Arc;
 use url::Url;
@@ -163,12 +163,13 @@ impl ObjectStoreRegistry {
     /// may be explicity registered with calls to [`ObjectStoreRegistry::register_store`] or
     /// created lazily, on-demand by the provided [`ObjectStoreProvider`]
     pub fn new_with_provider(provider: Option<Arc<dyn ObjectStoreProvider>>) -> Self {
-        let object_stores: DashMap<String, Arc<dyn ObjectStore>> = DashMap::new();
-        object_stores.insert("file://".to_string(), Arc::new(LocalFileSystem::new()));
-        Self {
-            object_stores,
-            provider,
-        }
+        // let object_stores: DashMap<String, Arc<dyn ObjectStore>> = DashMap::new();
+        // object_stores.insert("file://".to_string(), Arc::new(LocalFileSystem::new()));
+        // Self {
+        //     object_stores,
+        //     provider,
+        // }
+        todo!()
     }
 
     /// Adds a new store to this registry.
