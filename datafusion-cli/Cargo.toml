@@ -21,7 +21,7 @@ description = "Command Line Client for DataFusion query engine."
 version = "16.0.0"
 authors = ["Apache Arrow <dev@arrow.apache.org>"]
 edition = "2021"
-keywords = [ "arrow", "datafusion", "query", "sql" ]
+keywords = ["arrow", "datafusion", "query", "sql"]
 license = "Apache-2.0"
 homepage = "https://github.com/apache/arrow-datafusion"
 repository = "https://github.com/apache/arrow-datafusion"
@@ -32,12 +32,12 @@ readme = "README.md"
 arrow = "29.0.0"
 async-trait = "0.1.41"
 clap = { version = "3", features = ["derive", "cargo"] }
-datafusion = { path = "../datafusion/core", version = "16.0.0" }
+datafusion = { path = "../datafusion/core", version = "16.0.0", default-features = false }
 dirs = "4.0.0"
 env_logger = "0.9"
-mimalloc = { version = "0.1", default-features = false }
-object_store = { version = "0.5.0", features = ["aws", "gcp"] }
+# mimalloc = { version = "0.1", default-features = false }
+object_store = { version = "0.5.0" }
 parking_lot = { version = "0.12" }
-rustyline = "10.0"
-tokio = { version = "1.23", features = ["macros", "rt", "rt-multi-thread", "sync", "parking_lot"] }
+# rustyline = "10.0"
+tokio = { version = "1.23", features = ["macros", "rt", "sync"] }
 url = "2.2"

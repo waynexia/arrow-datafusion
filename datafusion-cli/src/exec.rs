@@ -19,13 +19,13 @@
 
 use crate::{
     command::{Command, OutputFormat},
-    helper::CliHelper,
+    // helper::CliHelper,
     print_options::PrintOptions,
 };
 use datafusion::error::Result;
 use datafusion::prelude::SessionContext;
-use rustyline::error::ReadlineError;
-use rustyline::Editor;
+// use rustyline::error::ReadlineError;
+// use rustyline::Editor;
 use std::fs::File;
 use std::io::prelude::*;
 use std::io::BufReader;
@@ -87,77 +87,84 @@ pub async fn exec_from_files(
     }
 }
 
-/// run and execute SQL statements and commands against a context with the given print options
 pub async fn exec_from_repl(
     ctx: &mut SessionContext,
     print_options: &mut PrintOptions,
-) -> rustyline::Result<()> {
-    let mut rl = Editor::<CliHelper>::new()?;
-    rl.set_helper(Some(CliHelper::default()));
-    rl.load_history(".history").ok();
-
-    let mut print_options = print_options.clone();
-
-    loop {
-        match rl.readline("❯ ") {
-            Ok(line) if line.starts_with('\\') => {
-                rl.add_history_entry(line.trim_end());
-                let command = line.split_whitespace().collect::<Vec<_>>().join(" ");
-                if let Ok(cmd) = &command[1..].parse::<Command>() {
-                    match cmd {
-                        Command::Quit => break,
-                        Command::OutputFormat(subcommand) => {
-                            if let Some(subcommand) = subcommand {
-                                if let Ok(command) = subcommand.parse::<OutputFormat>() {
-                                    if let Err(e) =
-                                        command.execute(&mut print_options).await
-                                    {
-                                        eprintln!("{}", e)
-                                    }
-                                } else {
-                                    eprintln!(
-                                        "'\\{}' is not a valid command",
-                                        &line[1..]
-                                    );
-                                }
-                            } else {
-                                println!("Output format is {:?}.", print_options.format);
-                            }
-                        }
-                        _ => {
-                            if let Err(e) = cmd.execute(ctx, &mut print_options).await {
-                                eprintln!("{}", e)
-                            }
-                        }
-                    }
-                } else {
-                    eprintln!("'\\{}' is not a valid command", &line[1..]);
-                }
-            }
-            Ok(line) => {
-                rl.add_history_entry(line.trim_end());
-                match exec_and_print(ctx, &print_options, line).await {
-                    Ok(_) => {}
-                    Err(err) => eprintln!("{:?}", err),
-                }
-            }
-            Err(ReadlineError::Interrupted) => {
-                println!("^C");
-                continue;
-            }
-            Err(ReadlineError::Eof) => {
-                println!("\\q");
-                break;
-            }
-            Err(err) => {
-                eprintln!("Unknown error happened {:?}", err);
-                break;
-            }
-        }
-    }
-
-    rl.save_history(".history")
+) -> std::result::Result<(), ()> {
+    Ok(())
 }
+
+/// run and execute SQL statements and commands against a context with the given print options
+// pub async fn exec_from_repl(
+//     ctx: &mut SessionContext,
+//     print_options: &mut PrintOptions,
+// ) -> rustyline::Result<()> {
+//     let mut rl = Editor::<CliHelper>::new()?;
+//     rl.set_helper(Some(CliHelper::default()));
+//     rl.load_history(".history").ok();
+
+//     let mut print_options = print_options.clone();
+
+//     loop {
+//         match rl.readline("❯ ") {
+//             Ok(line) if line.starts_with('\\') => {
+//                 rl.add_history_entry(line.trim_end());
+//                 let command = line.split_whitespace().collect::<Vec<_>>().join(" ");
+//                 if let Ok(cmd) = &command[1..].parse::<Command>() {
+//                     match cmd {
+//                         Command::Quit => break,
+//                         Command::OutputFormat(subcommand) => {
+//                             if let Some(subcommand) = subcommand {
+//                                 if let Ok(command) = subcommand.parse::<OutputFormat>() {
+//                                     if let Err(e) =
+//                                         command.execute(&mut print_options).await
+//                                     {
+//                                         eprintln!("{}", e)
+//                                     }
+//                                 } else {
+//                                     eprintln!(
+//                                         "'\\{}' is not a valid command",
+//                                         &line[1..]
+//                                     );
+//                                 }
+//                             } else {
+//                                 println!("Output format is {:?}.", print_options.format);
+//                             }
+//                         }
+//                         _ => {
+//                             if let Err(e) = cmd.execute(ctx, &mut print_options).await {
+//                                 eprintln!("{}", e)
+//                             }
+//                         }
+//                     }
+//                 } else {
+//                     eprintln!("'\\{}' is not a valid command", &line[1..]);
+//                 }
+//             }
+//             Ok(line) => {
+//                 rl.add_history_entry(line.trim_end());
+//                 match exec_and_print(ctx, &print_options, line).await {
+//                     Ok(_) => {}
+//                     Err(err) => eprintln!("{:?}", err),
+//                 }
+//             }
+//             Err(ReadlineError::Interrupted) => {
+//                 println!("^C");
+//                 continue;
+//             }
+//             Err(ReadlineError::Eof) => {
+//                 println!("\\q");
+//                 break;
+//             }
+//             Err(err) => {
+//                 eprintln!("Unknown error happened {:?}", err);
+//                 break;
+//             }
+//         }
+//     }
+
+//     rl.save_history(".history")
+// }
 
 async fn exec_and_print(
     ctx: &mut SessionContext,

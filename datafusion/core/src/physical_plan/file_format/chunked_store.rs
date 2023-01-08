@@ -77,79 +77,83 @@ impl ObjectStore for ChunkedStore {
     }
 
     async fn get(&self, location: &Path) -> Result<GetResult> {
-        match self.inner.get(location).await? {
-            GetResult::File(std_file, ..) => {
-                let file = tokio::fs::File::from_std(std_file);
-                let reader = BufReader::new(file);
-                Ok(GetResult::Stream(
-                    futures::stream::unfold(
-                        (reader, self.chunk_size),
-                        |(mut reader, chunk_size)| async move {
-                            let mut buffer = BytesMut::zeroed(chunk_size);
-                            let size = reader.read(&mut buffer).await.map_err(|e| {
-                                object_store::Error::Generic {
-                                    store: "ChunkedStore",
-                                    source: Box::new(e),
-                                }
-                            });
-                            match size {
-                                Ok(0) => None,
-                                Ok(value) => Some((
-                                    Ok(buffer.split_to(value).freeze()),
-                                    (reader, chunk_size),
-                                )),
-                                Err(e) => Some((Err(e), (reader, chunk_size))),
-                            }
-                        },
-                    )
-                    .boxed(),
-                ))
-            }
-            GetResult::Stream(stream) => {
-                let buffer = BytesMut::new();
-                Ok(GetResult::Stream(
-                    futures::stream::unfold(
-                        (stream, buffer, false, self.chunk_size),
-                        |(mut stream, mut buffer, mut exhausted, chunk_size)| async move {
-                            // Keep accumulating bytes until we reach capacity as long as
-                            // the stream can provide them:
-                            if exhausted {
-                                return None;
-                            }
-                            while buffer.len() < chunk_size {
-                                match stream.next().await {
-                                    None => {
-                                        exhausted = true;
-                                        let slice = buffer.split_off(0).freeze();
-                                        return Some((
-                                            Ok(slice),
-                                            (stream, buffer, exhausted, chunk_size),
-                                        ));
-                                    }
-                                    Some(Ok(bytes)) => {
-                                        buffer.put(bytes);
-                                    }
-                                    Some(Err(e)) => {
-                                        return Some((
-                                            Err(object_store::Error::Generic {
-                                                store: "ChunkedStore",
-                                                source: Box::new(e),
-                                            }),
-                                            (stream, buffer, exhausted, chunk_size),
-                                        ))
-                                    }
-                                };
-                            }
-                            // Return the chunked values as the next value in the stream
-                            let slice = buffer.split_to(chunk_size).freeze();
-                            Some((Ok(slice), (stream, buffer, exhausted, chunk_size)))
-                        },
-                    )
-                    .boxed(),
-                ))
-            }
-        }
+        todo!()
     }
+
+    // async fn get(&self, location: &Path) -> Result<GetResult> {
+    //     match self.inner.get(location).await? {
+    //         GetResult::File(std_file, ..) => {
+    //             let file = tokio::fs::File::from_std(std_file);
+    //             let reader = BufReader::new(file);
+    //             Ok(GetResult::Stream(
+    //                 futures::stream::unfold(
+    //                     (reader, self.chunk_size),
+    //                     |(mut reader, chunk_size)| async move {
+    //                         let mut buffer = BytesMut::zeroed(chunk_size);
+    //                         let size = reader.read(&mut buffer).await.map_err(|e| {
+    //                             object_store::Error::Generic {
+    //                                 store: "ChunkedStore",
+    //                                 source: Box::new(e),
+    //                             }
+    //                         });
+    //                         match size {
+    //                             Ok(0) => None,
+    //                             Ok(value) => Some((
+    //                                 Ok(buffer.split_to(value).freeze()),
+    //                                 (reader, chunk_size),
+    //                             )),
+    //                             Err(e) => Some((Err(e), (reader, chunk_size))),
+    //                         }
+    //                     },
+    //                 )
+    //                 .boxed(),
+    //             ))
+    //         }
+    //         GetResult::Stream(stream) => {
+    //             let buffer = BytesMut::new();
+    //             Ok(GetResult::Stream(
+    //                 futures::stream::unfold(
+    //                     (stream, buffer, false, self.chunk_size),
+    //                     |(mut stream, mut buffer, mut exhausted, chunk_size)| async move {
+    //                         // Keep accumulating bytes until we reach capacity as long as
+    //                         // the stream can provide them:
+    //                         if exhausted {
+    //                             return None;
+    //                         }
+    //                         while buffer.len() < chunk_size {
+    //                             match stream.next().await {
+    //                                 None => {
+    //                                     exhausted = true;
+    //                                     let slice = buffer.split_off(0).freeze();
+    //                                     return Some((
+    //                                         Ok(slice),
+    //                                         (stream, buffer, exhausted, chunk_size),
+    //                                     ));
+    //                                 }
+    //                                 Some(Ok(bytes)) => {
+    //                                     buffer.put(bytes);
+    //                                 }
+    //                                 Some(Err(e)) => {
+    //                                     return Some((
+    //                                         Err(object_store::Error::Generic {
+    //                                             store: "ChunkedStore",
+    //                                             source: Box::new(e),
+    //                                         }),
+    //                                         (stream, buffer, exhausted, chunk_size),
+    //                                     ))
+    //                                 }
+    //                             };
+    //                         }
+    //                         // Return the chunked values as the next value in the stream
+    //                         let slice = buffer.split_to(chunk_size).freeze();
+    //                         Some((Ok(slice), (stream, buffer, exhausted, chunk_size)))
+    //                     },
+    //                 )
+    //                 .boxed(),
+    //             ))
+    //         }
+    //     }
+    // }
 
     async fn get_range(&self, location: &Path, range: Range<usize>) -> Result<Bytes> {
         self.inner.get_range(location, range).await

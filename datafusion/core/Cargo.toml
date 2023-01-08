@@ -42,7 +42,7 @@ path = "src/lib.rs"
 avro = ["apache-avro", "num-traits", "datafusion-common/avro"]
 compression = ["xz2", "bzip2", "flate2", "async-compression"]
 crypto_expressions = ["datafusion-physical-expr/crypto_expressions"]
-default = ["crypto_expressions", "regex_expressions", "unicode_expressions", "compression"]
+# default = ["crypto_expressions", "regex_expressions", "unicode_expressions", "compression"]
 # Used for testing ONLY: causes all values to hash to the same value (test for collisions)
 force_hash_collisions = []
 # Used to enable JIT code generation
@@ -83,7 +83,7 @@ num-traits = { version = "0.2", optional = true }
 num_cpus = "1.13.0"
 object_store = "0.5.0"
 parking_lot = "0.12"
-parquet = { version = "29.0.0", features = ["arrow", "async"] }
+parquet = { version = "29.0.0", default-features=false, features=["arrow", "async"] }
 paste = "^1.0"
 percent-encoding = "2.2.0"
 pin-project-lite = "^0.2.7"
@@ -93,7 +93,7 @@ rayon = { version = "1.5", optional = true }
 smallvec = { version = "1.6", features = ["union"] }
 sqlparser = { version = "0.30", features = ["visitor"] }
 tempfile = "3"
-tokio = { version = "1.0", features = ["macros", "rt", "rt-multi-thread", "sync", "fs", "parking_lot"] }
+tokio = { version = "1.0", features = ["macros", "rt", "sync"] }
 tokio-stream = "0.1"
 tokio-util = { version = "0.7.4", features = ["io"] }
 url = "2.2"

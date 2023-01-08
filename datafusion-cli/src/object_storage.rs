@@ -19,7 +19,7 @@ use datafusion::error::Result;
 use std::{env, str::FromStr, sync::Arc};
 
 use datafusion::{datasource::object_store::ObjectStoreProvider, error::DataFusionError};
-use object_store::{aws::AmazonS3Builder, gcp::GoogleCloudStorageBuilder};
+// use object_store::{aws::AmazonS3Builder, gcp::GoogleCloudStorageBuilder};
 use url::Url;
 
 #[derive(Debug, PartialEq, Eq, clap::ArgEnum, Clone)]
@@ -56,35 +56,22 @@ impl ObjectStoreProvider for DatafusionCliObjectStoreProvider {
     }
 }
 
-fn build_s3_object_store(url: &Url) -> Result<Arc<dyn object_store::ObjectStore>> {
-    let host = get_host_name(url)?;
-    match AmazonS3Builder::from_env().with_bucket_name(host).build() {
-        Ok(s3) => Ok(Arc::new(s3)),
-        Err(err) => Err(DataFusionError::External(Box::new(err))),
-    }
+fn build_s3_object_store(_url: &Url) -> Result<Arc<dyn object_store::ObjectStore>> {
+    todo!()
 }
 
-fn build_gcs_object_store(url: &Url) -> Result<Arc<dyn object_store::ObjectStore>> {
-    let host = get_host_name(url)?;
-    let mut builder = GoogleCloudStorageBuilder::new().with_bucket_name(host);
-
-    if let Ok(path) = env::var("GCP_SERVICE_ACCOUNT_PATH") {
-        builder = builder.with_service_account_path(path);
-    }
-    match builder.build() {
-        Ok(gcs) => Ok(Arc::new(gcs)),
-        Err(err) => Err(DataFusionError::External(Box::new(err))),
-    }
+fn build_gcs_object_store(_url: &Url) -> Result<Arc<dyn object_store::ObjectStore>> {
+    todo!()
 }
 
-fn get_host_name(url: &Url) -> Result<&str> {
-    url.host_str().ok_or_else(|| {
-        DataFusionError::Execution(format!(
-            "Not able to parse hostname from url, {}",
-            url.as_str()
-        ))
-    })
-}
+// fn get_host_name(url: &Url) -> Result<&str> {
+//     url.host_str().ok_or_else(|| {
+//         DataFusionError::Execution(format!(
+//             "Not able to parse hostname from url, {}",
+//             url.as_str()
+//         ))
+//     })
+// }
 
 #[cfg(test)]
 mod tests {

@@ -26,13 +26,13 @@ use datafusion_cli::object_storage::DatafusionCliObjectStoreProvider;
 use datafusion_cli::{
     exec, print_format::PrintFormat, print_options::PrintOptions, DATAFUSION_CLI_VERSION,
 };
-use mimalloc::MiMalloc;
+// use mimalloc::MiMalloc;
 use std::env;
 use std::path::Path;
 use std::sync::Arc;
 
-#[global_allocator]
-static GLOBAL: MiMalloc = MiMalloc;
+// #[global_allocator]
+// static GLOBAL: MiMalloc = MiMalloc;
 
 #[derive(Debug, Parser, PartialEq)]
 #[clap(author, version, about, long_about= None)]
@@ -83,7 +83,7 @@ struct Args {
     quiet: bool,
 }
 
-#[tokio::main]
+#[tokio::main(flavor = "current_thread")]
 pub async fn main() -> Result<()> {
     env_logger::init();
     let args = Args::parse();
@@ -144,7 +144,9 @@ pub async fn main() -> Result<()> {
         // TODO maybe we can have thiserror for cli but for now let's keep it simple
         exec::exec_from_repl(&mut ctx, &mut print_options)
             .await
-            .map_err(|e| DataFusionError::External(Box::new(e)))
+            .unwrap();
+        Ok(())
+        // .map_err(|e| DataFusionError::External(Box::new(e)))
     }
 }
 
