@@ -91,6 +91,14 @@ pub async fn exec_from_repl(
     ctx: &mut SessionContext,
     print_options: &mut PrintOptions,
 ) -> std::result::Result<(), ()> {
+    loop {
+        print!("> :");
+        let mut query = String::new();
+        std::io::stdin().read_line(&mut query).unwrap();
+        println!("echo: {query}");
+        exec_and_print(ctx, print_options, query).await;
+    }
+
     Ok(())
 }
 

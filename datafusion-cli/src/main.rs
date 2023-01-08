@@ -92,10 +92,10 @@ pub async fn main() -> Result<()> {
         println!("DataFusion CLI v{}", DATAFUSION_CLI_VERSION);
     }
 
-    if let Some(ref path) = args.data_path {
-        let p = Path::new(path);
-        env::set_current_dir(p).unwrap();
-    };
+    // if let Some(ref path) = args.data_path {
+    //     let p = Path::new(path);
+    //     env::set_current_dir(p).unwrap();
+    // };
 
     let mut session_config = SessionConfig::from_env()?.with_information_schema(true);
 
@@ -117,6 +117,12 @@ pub async fn main() -> Result<()> {
         format: args.format,
         quiet: args.quiet,
     };
+
+    println!("starting!");
+
+    exec::exec_from_repl(&mut ctx, &mut print_options)
+        .await
+        .unwrap();
 
     let files = args.file;
     let rc = match args.rc {
@@ -151,11 +157,12 @@ pub async fn main() -> Result<()> {
 }
 
 fn create_runtime_env() -> Result<RuntimeEnv> {
-    let object_store_provider = DatafusionCliObjectStoreProvider {};
-    let object_store_registry =
-        ObjectStoreRegistry::new_with_provider(Some(Arc::new(object_store_provider)));
-    let rn_config =
-        RuntimeConfig::new().with_object_store_registry(Arc::new(object_store_registry));
+    // let object_store_provider = DatafusionCliObjectStoreProvider {};
+    // let object_store_registry =
+    //     ObjectStoreRegistry::new_with_provider(Some(Arc::new(object_store_provider)));
+    // let rn_config =
+    //     RuntimeConfig::new().with_object_store_registry(Arc::new(object_store_registry));
+    let rn_config = RuntimeConfig::default();
     RuntimeEnv::new(rn_config)
 }
 
