@@ -67,7 +67,7 @@ mod row_filter;
 mod row_groups;
 
 use crate::physical_plan::common::AbortOnDropSingle;
-use crate::physical_plan::file_format::parquet::page_filter::PagePruningPredicate;
+pub use crate::physical_plan::file_format::parquet::page_filter::PagePruningPredicate;
 pub use metrics::ParquetFileMetrics;
 
 use super::get_output_ordering;
@@ -463,21 +463,35 @@ fn make_output_ordering_string(ordering: &[PhysicalSortExpr]) -> String {
 }
 
 /// Implements [`FormatReader`] for a parquet file
-struct ParquetOpener {
-    partition_index: usize,
-    projection: Arc<[usize]>,
-    batch_size: usize,
-    limit: Option<usize>,
-    predicate: Option<Arc<dyn PhysicalExpr>>,
-    pruning_predicate: Option<Arc<PruningPredicate>>,
-    page_pruning_predicate: Option<Arc<PagePruningPredicate>>,
-    table_schema: SchemaRef,
-    metadata_size_hint: Option<usize>,
-    metrics: ExecutionPlanMetricsSet,
-    parquet_file_reader_factory: Arc<dyn ParquetFileReaderFactory>,
-    pushdown_filters: bool,
-    reorder_filters: bool,
-    enable_page_index: bool,
+pub struct ParquetOpener {
+    ///
+    pub partition_index: usize,
+    ///
+    pub projection: Arc<[usize]>,
+    ///
+    pub batch_size: usize,
+    ///
+    pub limit: Option<usize>,
+    ///
+    pub predicate: Option<Arc<dyn PhysicalExpr>>,
+    ///
+    pub pruning_predicate: Option<Arc<PruningPredicate>>,
+    ///
+    pub page_pruning_predicate: Option<Arc<PagePruningPredicate>>,
+    ///
+    pub table_schema: SchemaRef,
+    ///
+    pub metadata_size_hint: Option<usize>,
+    ///
+    pub metrics: ExecutionPlanMetricsSet,
+    ///
+    pub parquet_file_reader_factory: Arc<dyn ParquetFileReaderFactory>,
+    ///
+    pub pushdown_filters: bool,
+    ///
+    pub reorder_filters: bool,
+    ///
+    pub enable_page_index: bool,
 }
 
 impl FileOpener for ParquetOpener {
