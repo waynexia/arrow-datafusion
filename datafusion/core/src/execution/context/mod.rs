@@ -1925,6 +1925,21 @@ impl SessionState {
         Ok(plan)
     }
 
+    /// Returns the [`Analyzer`] for this session
+    pub fn analyzer(&self) -> &Analyzer {
+        &self.analyzer
+    }
+
+    /// Returns the [`Optimizer`] for this session
+    pub fn optimizer(&self) -> &Optimizer {
+        &self.optimizer
+    }
+
+    /// Returns the [`QueryPlanner`] for this session
+    pub fn query_planner(&self) -> &Arc<dyn QueryPlanner + Send + Sync> {
+        &self.query_planner
+    }
+
     /// Optimizes the logical plan by applying optimizer rules.
     pub fn optimize(&self, plan: &LogicalPlan) -> Result<LogicalPlan> {
         if let LogicalPlan::Explain(e) = plan {
