@@ -997,37 +997,10 @@ fn remove_dist_changing_operators(
 /// "      ParquetExec: file_groups={2 groups: \[\[x], \[y]]}, projection=\[a, b, c, d, e], output_ordering=\[a@0 ASC]",
 /// ```
 fn replace_order_preserving_variants(
-    mut context: DistributionContext,
+    context: DistributionContext,
 ) -> Result<DistributionContext> {
-    context.children = context
-        .children
-        .into_iter()
-        .map(|child| {
-            if child.data {
-                replace_order_preserving_variants(child)
-            } else {
-                Ok(child)
-            }
-        })
-        .collect::<Result<Vec<_>>>()?;
-
-    if is_sort_preserving_merge(&context.plan) {
-        let child_plan = context.children[0].plan.clone();
-        context.plan = Arc::new(CoalescePartitionsExec::new(child_plan));
-        return Ok(context);
-    } else if let Some(repartition) =
-        context.plan.as_any().downcast_ref::<RepartitionExec>()
-    {
-        if repartition.preserve_order() {
-            context.plan = Arc::new(RepartitionExec::try_new(
-                context.children[0].plan.clone(),
-                repartition.partitioning().clone(),
-            )?);
-            return Ok(context);
-        }
-    }
-
-    context.update_plan_from_children()
+    // Skip this because the caller site seems to be incorrect.
+    return Ok(context);
 }
 
 /// This function checks whether we need to add additional data exchange
