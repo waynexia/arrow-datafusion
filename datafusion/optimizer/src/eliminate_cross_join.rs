@@ -89,6 +89,7 @@ impl OptimizerRule for EliminateCrossJoin {
         let mut possible_join_keys = JoinKeySet::new();
         let mut all_inputs: Vec<LogicalPlan> = vec![];
         let mut all_filters: Vec<Expr> = vec![];
+        let mut null_equals_null = false;
 
         let parent_predicate = if let LogicalPlan::Filter(filter) = plan {
             // if input isn't a join that can potentially be rewritten
@@ -122,26 +123,30 @@ impl OptimizerRule for EliminateCrossJoin {
 
             extract_possible_join_keys(&predicate, &mut possible_join_keys);
             Some(predicate)
-        } else if matches!(
-            plan,
-            LogicalPlan::Join(Join {
-                join_type: JoinType::Inner,
-                ..
-            })
-        ) {
-            if !can_flatten_join_inputs(&plan) {
-                return Ok(Transformed::no(plan));
-            }
-            flatten_join_inputs(
-                plan,
-                &mut possible_join_keys,
-                &mut all_inputs,
-                &mut all_filters,
-            )?;
-            None
         } else {
-            // recursively try to rewrite children
-            return rewrite_children(self, plan, config);
+            match plan {
+                LogicalPlan::Join(Join {
+                    join_type: JoinType::Inner,
+                    null_equals_null: original_null_equals_null,
+                    ..
+                }) => {
+                    if !can_flatten_join_inputs(&plan) {
+                        return Ok(Transformed::no(plan));
+                    }
+                    flatten_join_inputs(
+                        plan,
+                        &mut possible_join_keys,
+                        &mut all_inputs,
+                        &mut all_filters,
+                    )?;
+                    null_equals_null = original_null_equals_null;
+                    None
+                }
+                _ => {
+                    // recursively try to rewrite children
+                    return rewrite_children(self, plan, config);
+                }
+            }
         };
 
         // Join keys are handled locally:
@@ -153,6 +158,7 @@ impl OptimizerRule for EliminateCrossJoin {
                 &mut all_inputs,
                 &possible_join_keys,
                 &mut all_join_keys,
+                null_equals_null,
             )?;
         }
 
@@ -290,6 +296,7 @@ fn find_inner_join(
     rights: &mut Vec<LogicalPlan>,
     possible_join_keys: &JoinKeySet,
     all_join_keys: &mut JoinKeySet,
+    null_equals_null: bool,
 ) -> Result<LogicalPlan> {
     for (i, right_input) in rights.iter().enumerate() {
         let mut join_keys = vec![];
@@ -328,7 +335,7 @@ fn find_inner_join(
                 on: join_keys,
                 filter: None,
                 schema: join_schema,
-                null_equals_null: false,
+                null_equals_null,
             }));
         }
     }
